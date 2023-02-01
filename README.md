@@ -2,6 +2,7 @@
 
 ## [GraphQl] Apollo Server 기본사용
 
+- 참고 깃허브: https://github.com/mkp0131/instaclone-backend/commit/6c8a9521c86fac1321d2ca6985ab5502e12eef05
 - Apollo Server: 커뮤니티에서 관리하는 오픈 소스 GraphQL 서버
 
 ### 설치
@@ -112,6 +113,8 @@ mutation {
 
 ### Step 1
 
+- 깃허브: https://github.com/mkp0131/instaclone-backend/tree/032b8bdc4976126576a3fed0f1a7097c931683c4
+
 - `client.js` 파일을 생성
 
 ```js
@@ -219,3 +222,58 @@ server.listen().then(({ url }) => {
 ```
 
 ### Step 2
+
+#### 도메인 별로 폴더를 만들어 나누어 준다.
+
+- `graphql-tools` 를 설치
+- 공식문서: https://the-guild.dev/graphql/tools/docs/generate-schema
+
+```js
+npm install @graphql-tools/schema @graphql-tools/load-files @graphql-tools/merge
+```
+
+- `도메인폴더/도메인.queries.js`, `도메인폴더/도메인.mutations.js`, `도메인폴더/도메인.typeDefs.js` 생성
+- 각각의 파일에 코드를 분리한다.
+
+- `schema.js` 에서 `graphql-tools` 을 이용해서 모든 파일을 합쳐줌.
+
+```js
+import { loadFilesSync } from "@graphql-tools/load-files";
+import { mergeResolvers, mergeTypeDefs } from "@graphql-tools/merge";
+import { makeExecutableSchema } from "apollo-server";
+
+// 현재 앱이 실행되는 곳의 모든 폴더, 모든 *.typeDefs.js 파일을 하나로 묶어준다.
+// 1. 파일을 읽고
+const loadedTypes = loadFilesSync(`${__dirname}/**/*.typeDefs.js`);
+const loadedResolvers = loadFilesSync(
+  `${__dirname}/**/*.{queries,mutations}.js`
+);
+
+// 2. 파일을 합친다.
+const typeDefs = mergeTypeDefs(loadedTypes);
+const resolvers = mergeResolvers(loadedResolvers);
+
+const schema = makeExecutableSchema({
+  typeDefs,
+  resolvers,
+});
+
+export default schema;
+```
+
+- server.js 에 적용
+
+```js
+import { ApolloServer, gql } from "apollo-server";
+import schema from "./schema";
+
+// 선언한 타입과 구현부를 서버에 넣어준다.
+const server = new ApolloServer({
+  schema,
+});
+
+// 서버 시작
+server.listen().then(({ url }) => {
+  console.log(`🚀 Server ready at ${url}`);
+});
+```
