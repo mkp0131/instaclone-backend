@@ -225,6 +225,8 @@ server.listen().then(({ url }) => {
 
 #### 도메인 별로 폴더를 만들어 나누어 준다.
 
+- 깃허브: https://github.com/mkp0131/instaclone-backend/commit/afd26bcfc2417b7320f5c0df16d7b41e5cf8d1e9
+
 - `graphql-tools` 를 설치
 - 공식문서: https://the-guild.dev/graphql/tools/docs/generate-schema
 
