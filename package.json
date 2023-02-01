@@ -1,0 +1,26 @@
+{
+  "name": "react-insta-backend",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "nodemon",
+    "migrate": "npx prisma migrate dev",
+    "studio": "npx prisma studio"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/cli": "^7.20.7",
+    "@babel/core": "^7.20.12",
+    "@babel/node": "^7.20.7",
+    "@babel/preset-env": "^7.20.2",
+    "nodemon": "^2.0.20",
+    "prisma": "^4.9.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^4.9.0",
+    "apollo-server": "^2.25.2",
+    "graphql": "^15.8.0"
+  }
+}
