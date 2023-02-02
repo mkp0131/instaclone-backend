@@ -1,6 +1,6 @@
-require("dotenv").config();
-import { ApolloServer, gql } from "apollo-server";
-import schema from "./schema";
+require('dotenv').config();
+import { ApolloServer } from 'apollo-server';
+import schema from './schema';
 
 // 선언한 타입과 구현부를 서버에 넣어준다.
 const server = new ApolloServer({

@@ -118,7 +118,7 @@ mutation {
 - `client.js` 파일을 생성
 
 ```js
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from '@prisma/client';
 
 const client = new PrismaClient();
 
@@ -129,8 +129,8 @@ export default client;
 - typeDefs, resolvers 를 옮겨준다.
 
 ```js
-import { gql } from "apollo-server";
-import client from "./client";
+import { gql } from 'apollo-server';
+import client from './client';
 
 // The GraphQL schema
 // 필요한 타입들을 선언한다.
@@ -152,7 +152,11 @@ export const typeDefs = gql`
   }
 
   type Mutation {
-    createMovie(title: String!, year: Int!, genre: String): Movie
+    createMovie(
+      title: String!
+      year: Int!
+      genre: String
+    ): Movie
     deleteMovie(id: Int!): Movie
     updateMovie(id: Int!, year: Int!): Movie
   }
@@ -177,7 +181,12 @@ export const resolvers = {
     // args 는 graphQl 에서 보낸 값. 예) { title: 'hello' }
     // args 는 mutation 에서 정의한 파라미터
     // args 구조분해 할당으로 값을 받는다.
-    createMovie: (_, { title, year, genre }, context, info) => {
+    createMovie: (
+      _,
+      { title, year, genre },
+      context,
+      info
+    ) => {
       return client.movie.create({
         data: {
           title,
@@ -206,8 +215,8 @@ export const resolvers = {
 - `server.js` 에서는 서버를 만들고 실행만 한다.
 
 ```js
-import { ApolloServer, gql } from "apollo-server";
-import { typeDefs, resolvers } from "./schema";
+import { ApolloServer, gql } from 'apollo-server';
+import { typeDefs, resolvers } from './schema';
 
 // 선언한 타입과 구현부를 서버에 넣어준다.
 const server = new ApolloServer({
@@ -240,13 +249,18 @@ npm install @graphql-tools/schema @graphql-tools/load-files @graphql-tools/merge
 - `schema.js` 에서 `graphql-tools` 을 이용해서 모든 파일을 합쳐줌.
 
 ```js
-import { loadFilesSync } from "@graphql-tools/load-files";
-import { mergeResolvers, mergeTypeDefs } from "@graphql-tools/merge";
-import { makeExecutableSchema } from "apollo-server";
+import { loadFilesSync } from '@graphql-tools/load-files';
+import {
+  mergeResolvers,
+  mergeTypeDefs,
+} from '@graphql-tools/merge';
+import { makeExecutableSchema } from 'apollo-server';
 
 // 현재 앱이 실행되는 곳의 모든 폴더, 모든 *.typeDefs.js 파일을 하나로 묶어준다.
 // 1. 파일을 읽고
-const loadedTypes = loadFilesSync(`${__dirname}/**/*.typeDefs.js`);
+const loadedTypes = loadFilesSync(
+  `${__dirname}/**/*.typeDefs.js`
+);
 const loadedResolvers = loadFilesSync(
   `${__dirname}/**/*.{queries,mutations}.js`
 );
@@ -266,8 +280,8 @@ export default schema;
 - server.js 에 적용
 
 ```js
-import { ApolloServer, gql } from "apollo-server";
-import schema from "./schema";
+import { ApolloServer, gql } from 'apollo-server';
+import schema from './schema';
 
 // 선언한 타입과 구현부를 서버에 넣어준다.
 const server = new ApolloServer({
@@ -277,5 +291,34 @@ const server = new ApolloServer({
 // 서버 시작
 server.listen().then(({ url }) => {
   console.log(`🚀 Server ready at ${url}`);
+});
+```
+
+--- 여기까지 완료
+
+## [prisma] 쿼리 예시 / where, or
+
+- where, or (`OR`은 꼭 대문자!)
+
+```js
+const existingUser = client.user.findFirst({
+  where: {
+    OR: [
+      {
+        username,
+      },
+      {
+        email,
+      },
+    ],
+  },
+});
+```
+
+- findUnique: @unique 로 정한것들만 검색이 가능한다
+
+```js
+return client.user.findUnique({
+  where: { username },
 });
 ```
