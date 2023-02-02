@@ -23,7 +23,10 @@ export default {
         });
 
         if (existingUser) {
-          throw new Error('이미 가입된 계정 입니다.');
+          return {
+            ok: false,
+            error: '이미 가입된 계정 입니다.',
+          };
         }
 
         // 비밀번호 암호화
@@ -42,7 +45,12 @@ export default {
         });
       } catch (error) {
         console.error(error);
-        return error;
+        if (existingUser) {
+          return {
+            ok: false,
+            error,
+          };
+        }
       }
     },
   },
