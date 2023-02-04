@@ -37,7 +37,7 @@ export default {
           { id: existingUser.id },
           process.env.TOKEN_SECRET_KEY,
           {
-            expiresIn: '1h',
+            expiresIn: 1 * 60 * 60,
           }
         );
 
