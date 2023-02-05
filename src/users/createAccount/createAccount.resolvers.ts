@@ -1,11 +1,12 @@
-import client from '../../client';
-import bcrypt from 'bcrypt';
+import * as bcrypt from 'bcrypt';
+import { Resolvers } from '../../types';
 
-export default {
+const resolvers: Resolvers = {
   Mutation: {
     createdAccount: async (
       _,
-      { firstName, lastName, username, email, password }
+      { firstName, lastName, username, email, password },
+      { client }
     ) => {
       try {
         // ✅ db 의 유니크 키가 중복되는게 없는지 먼저 확인한다.
@@ -45,13 +46,13 @@ export default {
         });
       } catch (error) {
         console.error(error);
-        if (existingUser) {
-          return {
-            ok: false,
-            error,
-          };
-        }
+        return {
+          ok: false,
+          error: error.toString(),
+        };
       }
     },
   },
 };
+
+export default resolvers;

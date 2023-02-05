@@ -1,21 +1,26 @@
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 import client from '../client';
+import { Resolver } from '../types';
 
 export const getUser = async (token) => {
   try {
     // 토큰이 없을시
     if (!token) return null;
 
-    const { id } = jwt.verify(
+    const verifiedToken: any = jwt.verify(
       token,
       process.env.TOKEN_SECRET_KEY
     );
-    const user = await client.user.findUnique({
-      where: { id },
-    });
-    if (user) {
-      return user;
+
+    if ('id' in verifiedToken) {
+      const user = await client.user.findUnique({
+        where: { id: verifiedToken['id'] },
+      });
+      if (user) {
+        return user;
+      }
     }
+
     return null;
   } catch (error) {
     console.error(error);
@@ -24,7 +29,7 @@ export const getUser = async (token) => {
 };
 
 export const protectResolver =
-  (resolver) => (root, args, context, info) => {
+  (resolver: Resolver) => (root, args, context, info) => {
     if (!context.loggedInUser) {
       return {
         ok: false,

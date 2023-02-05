@@ -1,9 +1,10 @@
-import client from '../../client';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import * as bcrypt from 'bcrypt';
+import * as jwt from 'jsonwebtoken';
 import { protectResolver } from '../users.utils';
+import { Resolver, Resolvers } from '../../types';
+const { GraphQLUpload } = require('graphql-upload');
 
-const resolverFn = async (
+const resolverFn: Resolver = async (
   _,
   {
     firstName,
@@ -11,11 +12,15 @@ const resolverFn = async (
     username,
     email,
     password: newPassword,
+    bio,
+    avatar,
   },
   // context 에서 token 으로 접근
-  { loggedInUser }
+  { loggedInUser, client }
 ) => {
   try {
+    console.log(avatar);
+
     // 비밀번호 암호화
     let hashNewPassword = null;
     if (newPassword) {
@@ -54,8 +59,11 @@ const resolverFn = async (
   }
 };
 
-export default {
+const resolvers: Resolvers = {
+  Upload: GraphQLUpload,
   Mutation: {
     editProfile: protectResolver(resolverFn),
   },
 };
+
+export default resolvers;

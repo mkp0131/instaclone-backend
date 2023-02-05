@@ -1,10 +1,14 @@
-import client from '../../client';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import * as jwt from 'jsonwebtoken';
+import * as bcrypt from 'bcrypt';
+import { Resolvers } from '../../types';
 
-export default {
+const resolvers: Resolvers = {
   Mutation: {
-    login: async (_, { username, password }) => {
+    login: async (
+      _,
+      { username, password },
+      { client }
+    ) => {
       try {
         // 1. 유저 정보가져오기 없으면 없다고 에러내기
         const existingUser = await client.user.findUnique({
@@ -50,9 +54,11 @@ export default {
         console.error(error);
         return {
           ok: false,
-          error,
+          error: error.toString(),
         };
       }
     },
   },
 };
+
+export default resolvers;

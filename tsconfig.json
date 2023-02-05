@@ -1,0 +1,14 @@
+{
+  "include": ["src"], // 컴파일하고 싶은 디렉토리
+  "compilerOptions": {
+    "target": "es5", // 컴파일할 자바스크립트 버전
+    // "module": "CommonJS", // 컴파일할 모듈
+    // "types": ["node"],
+    "outDir": "build", // 컴파일할때 넣는 디렉토리
+    // "lib": ["es5", "DOM"], // 컴파일 할 때 포함될 라이브러리의 목록 / 해당목록에 있어야 자동완성 기능을 사용할수있다.
+    // "strict": true, // 자바스크립트 패키지 사용시, 타입스크립트 정의파일이 꼭 있어야한다.
+    "noImplicitAny": false, // any 형식 오류 안나도록 수정(false 가 기본값)
+    "moduleResolution": "node",
+    "allowJs": true // 타입스크립트에서 자바스크립트 패키지 사용을 허용한다. / 타입정의가 없어도 괜찮음
+  }
+}
