@@ -2,6 +2,8 @@ import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { protectResolver } from '../users.utils';
 import { Resolver, Resolvers } from '../../types';
+import { createWriteStream, ReadStream } from 'fs';
+
 const { GraphQLUpload } = require('graphql-upload');
 
 const resolverFn: Resolver = async (
@@ -19,7 +21,23 @@ const resolverFn: Resolver = async (
   { loggedInUser, client }
 ) => {
   try {
-    console.log(avatar);
+    let avatarUrl = null;
+
+    if (avatar) {
+      const { filename, createReadStream } = await avatar;
+
+      avatarUrl = `${
+        loggedInUser.id
+      }-${Date.now()}-${filename}`;
+
+      const readStream: ReadStream = createReadStream();
+
+      const writeStream = createWriteStream(
+        `${process.cwd()}/uploads/${avatarUrl}`
+      );
+
+      readStream.pipe(writeStream);
+    }
 
     // 비밀번호 암호화
     let hashNewPassword = null;
@@ -39,6 +57,7 @@ const resolverFn: Resolver = async (
         ...(hashNewPassword && {
           password: hashNewPassword,
         }), // 조건문
+        ...(avatarUrl && { avatar: avatarUrl }),
       },
     });
 

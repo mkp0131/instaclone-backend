@@ -3,7 +3,7 @@ import { Resolvers } from '../../types';
 
 const resolvers: Resolvers = {
   Mutation: {
-    createdAccount: async (
+    createAccount: async (
       _,
       { firstName, lastName, username, email, password },
       { client }
@@ -35,7 +35,7 @@ const resolvers: Resolvers = {
           password,
           15
         );
-        return client.user.create({
+        const createdUser = await client.user.create({
           data: {
             firstName,
             username,
@@ -44,6 +44,14 @@ const resolvers: Resolvers = {
             lastName,
           },
         });
+
+        if (createdUser) {
+          return {
+            ok: true,
+          };
+        } else {
+          throw new Error('업데이트에 실패하였습니다.');
+        }
       } catch (error) {
         console.error(error);
         return {

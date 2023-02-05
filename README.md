@@ -296,7 +296,7 @@ server.listen().then(({ url }) => {
 
 --- 여기까지 완료
 
-## [prisma] 쿼리 예시 / where, or
+## [prisma] 쿼리 예시 / where, or, count, relation, select
 
 - where, or (`OR`은 꼭 대문자!)
 
@@ -321,4 +321,73 @@ const existingUser = client.user.findFirst({
 return client.user.findUnique({
   where: { username },
 });
+```
+
+- select 옵션을 활용하여 원하는 컬럼만 가져올 수 있다.
+
+```js
+const checkUser = await client.user.findUnique({
+  where: {
+    username,
+  },
+  // id 만 가져옴
+  select: {
+    id: true,
+  },
+});
+```
+
+- count: 총 줄 수를 반환
+
+```js
+const totalFollowers = await client.user.count({
+  where: {
+    followings: {
+      some: {
+        username,
+      },
+    },
+  },
+});
+```
+
+- relation 관계 가져오기
+
+```js
+const followers = await client.user
+  .findUnique({
+    where: {
+      username,
+    },
+  })
+  .followers({
+    take: TAKE_ROW,
+    skip: TAKE_ROW * (page - 1),
+  });
+```
+
+## [prisma] @relation 관계 모두 계산하여 가져오기
+
+```ts
+import { Resolvers } from '../../types';
+import { protectResolver } from '../users.utils';
+
+const resolvers: Resolvers = {
+  Query: {
+    seeProfile: protectResolver(
+      (_, { username }, { client }) => {
+        return client.user.findUnique({
+          where: { username },
+          // relation 관계 모두 계산하여 가져오기
+          include: {
+            followers: true,
+            followings: true,
+          },
+        });
+      }
+    ),
+  },
+};
+
+export default resolvers;
 ```

@@ -7,6 +7,11 @@ const resolvers: Resolvers = {
       (_, { username }, { client }) => {
         return client.user.findUnique({
           where: { username },
+          // relation 관계 모두 계산하여 가져오기
+          include: {
+            followers: true,
+            followings: true,
+          },
         });
       }
     ),

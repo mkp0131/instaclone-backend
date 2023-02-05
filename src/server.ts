@@ -8,6 +8,7 @@ const {
   graphqlUploadExpress, // A Koa implementation is also exported.
 } = require('graphql-upload');
 import * as morgan from 'morgan';
+import path = require('path');
 
 const startApolloServer = async () => {
   // 선언한 타입과 구현부를 서버에 넣어준다.
@@ -27,9 +28,13 @@ const startApolloServer = async () => {
 
   await server.start();
   const app = express();
+  app.use(
+    express.static(path.join(__dirname, '..', 'uploads'))
+  );
   app.use(graphqlUploadExpress());
   app.use(morgan('dev'));
 
+  // 생성한 아폴로서버에 express 추가
   server.applyMiddleware({ app });
 
   // 서버 시작
