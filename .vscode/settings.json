@@ -11,6 +11,6 @@
   },
   "[prisma]": {
     "editor.defaultFormatter": "Prisma.prisma"
-  },
-  "http.proxySupport": "off"
+  }
+  // "http.proxySupport": "off"
 }

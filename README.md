@@ -366,7 +366,114 @@ const followers = await client.user
   });
 ```
 
+- relation 관계만 있는 db 가져오기
+- 예) 나를 팔로워로 가지고 있는 user 카운트
+
+```js
+const total = await client.user.count({
+  where: {
+    followers: {
+      some: {
+        id,
+      },
+    },
+  },
+});
+```
+
+- relation 관계만 있는 db 넣기
+
+```js
+return client.photo.create({
+  data: {
+    file: fileUrl,
+    caption,
+    user: {
+      connect: {
+        id: loggedInUser.id,
+      },
+    },
+    ...(hashtagObjs && {
+      hashtags: {
+        connectOrCreate: hashtagObjs,
+      },
+    }),
+  },
+});
+```
+
+- relation 관계 수정시 => 관계를 삭제하고 다시 생성
+
+```js
+// 기존 hash태그 삭제 및 재연결
+const updatedPhoto = await client.photo.update({
+  where: {
+    id,
+  },
+  data: {
+    caption,
+    hashtags: {
+      disconnect: photo.hashtags,
+      connectOrCreate: hashtagObjs,
+    },
+  },
+});
+```
+
 ## [prisma] @relation 관계 모두 계산하여 가져오기
+
+- prisma 에서 @relation 관계는 연산 비용이 많이 들기 때문에, 설정을 해주어야한다.
+
+### include VS resolver 차이
+
+반환하는 데이터 값 자체는 동일합니다.
+즉, '항상' hashtags와 user의 전체 데이터가 필요하다면
+include를 사용하면 좋을 수 있을거에요.
+
+하지만, 그저 include: { hashtags: true, user:true } 로 설정을 해 두면
+hashtags나 user를 호출하든 호출하지 않던 데이터를 일단 가져 옵니다.
+
+반면에, user와 hashtags를 include하지 않고 resolver로 만들어둔다면
+프론트엔드에서 user와 hashtags를 달라고 요청할 때에
+resolver가 user와 hashtags를 resolver에 찾아 들어가서 데이터를 구해오고
+반환 합니다.
+
+### resolver
+
+- `users.resolvers.ts` 파일을 생성
+
+```ts
+import { Resolvers } from '../types';
+
+const resolvers: Resolvers = {
+  Photo: {
+    user: ({ userId }, _, { client }) => {
+      return client.user.findUnique({
+        where: {
+          id: userId,
+        },
+      });
+    },
+    hashtags: ({ id }, _, { client }) => {
+      return client.photo
+        .findUnique({
+          where: {
+            id,
+          },
+        })
+        .hashtags();
+    },
+  },
+};
+
+export default resolvers;
+```
+
+### include 사용(비추)
+
+- 쿼리를 업데이트 할때는 include 를 사용한다
+
+#### 기본사용
 
 ```ts
 import { Resolvers } from '../../types';
@@ -390,4 +497,206 @@ const resolvers: Resolvers = {
 };
 
 export default resolvers;
+```
+
+#### 쿼리에서 사용
+
+- select 를 활용해 특정한 컬럼만 가져온다.
+
+```js
+// 사용자의 사진인지 확인
+const photo = await client.photo.findFirst({
+  where: {
+    id,
+    userId: loggedInUser.id,
+  },
+  include: {
+    hashtags: {
+      select: {
+        hashtag: true,
+      },
+    },
+  },
+});
+```
+
+## [graphql] 페이지네이션 정리
+
+### 1. 오프셋 기반 페이지네이션(Offset-based Pagination)
+
+- DB의 offset쿼리를 사용하여 ‘페이지’ 단위로 구분하여 요청/응답
+- 순차적으로 db를 불러온다.
+
+```ts
+const resolverFn: Resolver = async (
+  _,
+  { username, page },
+  { loggedInUser, client }
+) => {
+  try {
+    const checkUser = await client.user.findUnique({
+      where: {
+        username,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!checkUser) {
+      throw new Error('유저가 없습니다.');
+    }
+
+    const TAKE_ROW = 5;
+
+    const totalFollowers = await client.user.count({
+      where: {
+        followings: {
+          some: {
+            username,
+          },
+        },
+      },
+    });
+
+    const followers = await client.user
+      .findUnique({
+        where: {
+          username,
+        },
+      })
+      .followers({
+        take: TAKE_ROW,
+        skip: TAKE_ROW * (page - 1),
+      });
+
+    return {
+      ok: true,
+      followers,
+      totalPages: Math.ceil(totalFollowers / TAKE_ROW),
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      ok: false,
+      error: error.toString(),
+    };
+  }
+};
+```
+
+### 2. 커서 기반 페이지네이션(Cursor-based Pagination)
+
+- Cursor 개념을 사용하여 사용자에게 응답해준 마지막 데이터 기준으로 다음 n개 요청/응답
+
+```ts
+const resolverFn: Resolver = async (
+  _,
+  { username, lastId },
+  { loggedInUser, client }
+) => {
+  try {
+    console.log('----------------');
+
+    const checkUser = await client.user.findUnique({
+      where: {
+        username,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!checkUser) {
+      throw new Error('유저가 없습니다.');
+    }
+
+    const TAKE_ROW = 5;
+
+    const followings = await client.user
+      .findUnique({
+        where: {
+          username,
+        },
+      })
+      .followings({
+        take: TAKE_ROW,
+        skip: lastId ? 1 : 0,
+        ...(lastId && {
+          cursor: {
+            id: lastId,
+          },
+        }),
+      });
+
+    console.log(followings);
+
+    return {
+      ok: true,
+      followings,
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      ok: false,
+      error: error.toString(),
+    };
+  }
+};
+```
+
+### 각각의 필드도 args 를 받을 수 있다.
+
+```js
+  type Hashtag {
+    id: Int!
+    hashtags: String!
+    photos(page: Int!): [Photo]
+    totalPhoto: Int!
+    createdAt: String!
+    updatedAt: String!
+  }
+```
+
+```js
+const resolvers: Resolvers = {
+  Query: {
+    seeHashtag: protectResolver(resolverFn),
+  },
+  Hashtag: {
+    photos: async (
+      { id },
+      { page },
+      { loggedInUser, client }
+    ) => {
+      const TAKE_ROW = 5;
+      return client.hashtag
+        .findUnique({
+          where: {
+            id,
+          },
+        })
+        .photos({
+          take: TAKE_ROW,
+          skip: TAKE_ROW * (page - 1),
+        });
+    },
+```
+
+## [prisma] 두가지 필드 한번에 unique 설정
+
+멋진 기능이네요. 동시에 한묶음으로 unique 생성하면 userId 와 photoId 중 어느 하나는 꼭 다른 포토 이거나 유저여야 되니까. 같은 사람이 동일한 포토를 라이크 할 수 없겠네요. 또 규칙 하나 추가하자면 userId나 photoId 중 어느하나가 null이 될 수도 없네요. 즉 like에서 유저나 포토를 disconnect 할 수 없으므로 그냥 삭제 해야 되네요. disconnect가 될 경우 버려져서 쌓이는 db가 나도 모르는 사이 늘어날 수도 있는데 깔끔하게 삭제 해버리니까 참 괜찮은 방법인것 같아요. 이런거 누가 개발하는지 모르겠지만 아마도 개발자들은 전부 천재인듯... 하 이거 잘만 활용하면 ondelete 기능 없이 db 구축이 가능할 것 같은데요.. 그래서 지원 안해주나..
+
+```js
+model Like {
+  id        Int      @id @default(autoincrement())
+  photo     Photo    @relation(fields: [photoId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  photoId   Int
+  userId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([photoId, userId])
+}
 ```
