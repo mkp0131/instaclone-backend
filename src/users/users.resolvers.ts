@@ -40,19 +40,15 @@ const resolvers: Resolvers = {
       return total;
     },
     isMe: async ({ id }, _, { loggedInUser }) => {
-      if (id === loggedInUser.id) {
-        return true;
-      }
-      return false;
+      if (!loggedInUser || !loggedInUser.id) return false;
+      return id === loggedInUser.id;
     },
     isFollowing: async (
       { id },
       _,
       { loggedInUser, client }
     ) => {
-      if (!loggedInUser) {
-        return false;
-      }
+      if (!loggedInUser || !loggedInUser.id) return false;
       try {
         const result = await client.user
           .findUnique({

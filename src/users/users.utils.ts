@@ -31,10 +31,16 @@ export const getUser = async (token) => {
 export const protectResolver =
   (resolver: Resolver) => (root, args, context, info) => {
     if (!context.loggedInUser) {
-      return {
-        ok: false,
-        error: '인증 정보가 없습니다.',
-      };
+      const query = info.operation.operation === 'query';
+
+      if (query) {
+        return null;
+      } else {
+        return {
+          ok: false,
+          error: '인증 정보가 없습니다.',
+        };
+      }
     }
 
     return resolver(root, args, context, info);

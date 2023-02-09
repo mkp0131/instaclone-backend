@@ -323,7 +323,7 @@ return client.user.findUnique({
 });
 ```
 
-- select 옵션을 활용하여 원하는 컬럼만 가져올 수 있다.
+- select 옵션을 활용하여 원하는 컬럼만 가져올 수 있다. (select 를 중첩으로 사용가능 / include 처럼 연관된 db의 정보를 가져올 수 도 있다.)
 
 ```js
 const checkUser = await client.user.findUnique({
@@ -347,6 +347,25 @@ const totalFollowers = await client.user.count({
         username,
       },
     },
+  },
+});
+```
+
+- orderby
+
+```ts
+return client.photo.findMany({
+  where: {
+    user: {
+      followers: {
+        some: {
+          id: loggedInUser.id,
+        },
+      },
+    },
+  },
+  orderBy: {
+    createdAt: 'desc',
   },
 });
 ```
@@ -472,6 +491,7 @@ export default resolvers;
 ### include 사용(비추)
 
 - 쿼리를 업데이트 할때는 include 를 사용한다
+- select 를 사용하는게 더 좋다. (select 와 include 는 같은레벨에서 '동시 사용'이 불가하다.)
 
 #### 기본사용
 
@@ -698,5 +718,67 @@ model Like {
   updatedAt DateTime @updatedAt
 
   @@unique([photoId, userId])
+}
+```
+
+## [graphql] 파일 업로드 AWS S3 || 서버 / 파일 스트림 / AWS SDK 사용
+
+### AWS 로 업로드
+
+```js
+import * as AWS from 'aws-sdk';
+import { ReadStream } from 'fs';
+import { v4 as uuidv4 } from 'uuid';
+
+AWS.config.update({
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
+export const uploadToS3 = async (file, userId) => {
+  const { filename, createReadStream } = await file;
+
+  const regexFilename = filename.match(/(\w|-|_|\/)+./g);
+  const fileExt = regexFilename[regexFilename.length - 1];
+
+  const readStream: ReadStream = createReadStream();
+
+  const upload = await new AWS.S3()
+    .upload({
+      // Body: 파일 스트림(stream)
+      Body: readStream,
+      // Bucket: 업로드할 버킷 이름(AWS S3 BUCKET)
+      Bucket: 'instaclone-bucket',
+      // Key: 업로드할 파일 이름 (폴더 경로로 입력가능!)
+      Key: `${uuidv4()}.${fileExt}`,
+      // ACL: 권한
+      ACL: 'public-read',
+    })
+    .promise();
+  return upload.Location;
+};
+```
+
+### 서버로 업로드
+
+- readStream 을 만들어서, writeStream 을 readStream.pipe 에 넣는다.
+
+```js
+let fileUrl = '';
+
+if (file) {
+  const { filename, createReadStream } = await file;
+
+  fileUrl = `${loggedInUser.id}-${Date.now()}-${filename}`;
+
+  const readStream: ReadStream = createReadStream();
+
+  const writeStream = createWriteStream(
+    `${process.cwd()}/uploads/${fileUrl}`
+  );
+
+  readStream.pipe(writeStream);
 }
 ```

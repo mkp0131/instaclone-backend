@@ -3,6 +3,7 @@ import * as jwt from 'jsonwebtoken';
 import { protectResolver } from '../users.utils';
 import { Resolver, Resolvers } from '../../types';
 import { createWriteStream, ReadStream } from 'fs';
+import { uploadToS3 } from '../../shared/shared.utils';
 
 const { GraphQLUpload } = require('graphql-upload');
 
@@ -21,22 +22,13 @@ const resolverFn: Resolver = async (
   { loggedInUser, client }
 ) => {
   try {
+    if (!loggedInUser || !loggedInUser.id) {
+      throw new Error('인증 정보가 없습니다.');
+    }
+
     let avatarUrl = null;
-
     if (avatar) {
-      const { filename, createReadStream } = await avatar;
-
-      avatarUrl = `${
-        loggedInUser.id
-      }-${Date.now()}-${filename}`;
-
-      const readStream: ReadStream = createReadStream();
-
-      const writeStream = createWriteStream(
-        `${process.cwd()}/uploads/${avatarUrl}`
-      );
-
-      readStream.pipe(writeStream);
+      avatarUrl = await uploadToS3(avatar, loggedInUser.id);
     }
 
     // 비밀번호 암호화
