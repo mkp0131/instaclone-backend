@@ -37,7 +37,7 @@ const resolvers: Resolvers = {
       if (!loggedInUser || !loggedInUser.id) return false;
       return userId === loggedInUser.id;
     },
-    isLike: async ({ id }, _, { loggedInUser }) => {
+    isLiked: async ({ id }, _, { loggedInUser }) => {
       if (!loggedInUser) {
         return false;
       }
