@@ -26,12 +26,21 @@ const resolvers: Resolvers = {
         },
       });
     },
-    comments: ({ id }, _, { client }) => {
+    commentNumber: ({ id }, _, { client }) => {
       return client.comment.count({
         where: {
           photoId: id,
         },
       });
+    },
+    comments: ({ id }, _, { client }) => {
+      return client.photo
+        .findUnique({
+          where: {
+            id,
+          },
+        })
+        .comments();
     },
     isMine: ({ userId }, _, { loggedInUser }) => {
       if (!loggedInUser || !loggedInUser.id) return false;
